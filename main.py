@@ -1,36 +1,79 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-import numpy as np
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+# import numpy as np
 # import matplotlib.pyplot as plt
 
+BATCH_SIZE = 64
+IMG_SIZE = 128  # All images will be resized to 192x192
 
-def conv_bn_relu(input_channel=64):
+
+def load_dataset():
+    datadir = './dataset'
+    # testset = datadir+'/test/'
+    input_shape = ()
+    train_datagen = ImageDataGenerator(
+        rescale=1.0 / 255,
+        rotation_range=40,
+        width_shift_range=0.2,
+        height_shift_range=0.2,
+        shear_range=0.2,
+        zoom_range=0.2,
+        horizontal_flip=True,
+        fill_mode="nearest",
+    )
+    train_generator = train_datagen.flow_from_directory(
+        directory=datadir,
+        target_size=(IMG_SIZE, IMG_SIZE),
+        color_mode="rgb",
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        class_mode=None,
+    )
+
+    num_samples = train_generator.n
+    input_shape = train_generator.image_shape
+    print("Image input %s" % str(input_shape))
+    print('Loaded %d training samples.' % (num_samples))
+    return train_generator
+
+
+def conv_bn_relu():
     model = tf.keras.Sequential(name="conv_bn_relu")
     model.add(layers.ZeroPadding2D(padding=(1, 1)))
-    # 50 images, 16x16 pixels and 1 channels
     # https://stackoverflow.com/questions/44747343/keras-input-explanation-input-shape-units-batch-size-dim-etc
-    model.add(layers.Conv2D(input_channel,
+    model.add(layers.Conv2D(64,
                             kernel_size=(3, 3),
                             strides=1,
                             padding="same"))
-    model.add(layers.BatchNormalization())
+    model.add(layers.BatchNormalization(axis=1))
     model.add(layers.Activation('relu'))
     return model
 
 
-def encoder(channel):
+def model_one(channel):
     model = tf.keras.Sequential()
     model.add(conv_bn_relu())
     model.add(conv_bn_relu())
     model.add(conv_bn_relu())
     model.add(conv_bn_relu())
-    # other code
-    input_channel = (64 + 30 + channel)
-    model.add(conv_bn_relu(input_channel=input_channel))
-    model.add(layers.Conv2D(channel, (1, 1), strides=1,
-                            padding="valid"))  # "valid" = 0 in keras
     return model
+
+
+def model_two(channel):
+    model = tf.keras.Sequential()
+    # other code
+    channel = (64 + 30 + channel)
+    model.add(conv_bn_relu())
+    # "valid" = 0 in keras
+    model.add(layers.Conv2D(channel, (1, 1), strides=1, padding="valid"))
+    return model
+
+
+def encoder(channel):
+    return model_one(channel=channel)
+    # model_two()
 
 
 def string_to_binary(string):
@@ -40,9 +83,16 @@ def string_to_binary(string):
 if __name__ == "__main__":
     st = "Hello, World"
     binary = string_to_binary(st)
-    print(st)
-    print(binary)
+    train_generator = load_dataset()
     encoder = encoder(channel=1)
+    encoder.compile(
+        loss="categorical_crossentropy",
+        optimizer="adam",
+        metrics=["acc"],
+    )
+    history = encoder.fit_generator(train_generator, epochs=10, verbose=1)
+    encoder.summary()
+    '''
     mnist = keras.datasets.mnist
     (train_images, train_labels), (test_images,
                                    test_labels) = mnist.load_data()
@@ -54,13 +104,4 @@ if __name__ == "__main__":
                     loss='categorical_crossentropy',
                     metrics=['accuracy'])
     encoder.fit(train_images, train_labels, epochs=10)
-    '''
-    encoder.compile(
-        optimizer='adam',
-        loss='sparse_categorical_crossentropy',
-        metrics=['accuracy'])
-    encoder.fit(train_images, train_labels, epochs=10)
-    test_loss, test_acc =
-    encoder.evaluate(test_images, test_labels, verbose=2)
-    print('\nTest accuracy:', test_acc)
     '''
