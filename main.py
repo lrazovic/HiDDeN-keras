@@ -33,9 +33,13 @@ def encoder(channel):
     return model
 
 
+def string_to_binary(string):
+    return ' '.join(format(ord(x), 'b') for x in string)
+
+
 if __name__ == "__main__":
     st = "Hello, World"
-    binary = ' '.join(format(ord(x), 'b') for x in st)
+    binary = string_to_binary(st)
     print(st)
     print(binary)
     encoder = encoder(channel=1)
