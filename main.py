@@ -1,10 +1,10 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow.keras.models import Model
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from encoder import model_encoder
 from decoder import model_decoder
-from tensorflow.keras.models import Model
 
 BATCH_SIZE = 64
 IMG_SIZE = 128  # All images will be resized to 192x192
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     message_length = len(binary_message)
     train_generator = load_dataset()
     input_img = layers.Input(shape=(128, 128, 3))
-    input_messages = layers.Input(shape=(L, 1))
+    input_messages = layers.Input(shape=(message_length, 1))
 
     encoded_images = model_encoder(input_img, input_messages)
 
