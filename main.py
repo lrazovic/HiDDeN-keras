@@ -4,6 +4,7 @@ from tensorflow.keras import layers
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from encoder import model_encoder
 from decoder import model_decoder
+from tensorflow.keras.models import Model
 
 BATCH_SIZE = 64
 IMG_SIZE = 128  # All images will be resized to 192x192
@@ -30,24 +31,22 @@ def load_dataset():
     return train_generator
 
 
-def model(channel):
-    model_encoder()  # Missing parameters
-    model_decoder()  # Missing parameters
-
-
 def string_to_binary(string):
     return ' '.join(format(ord(x), 'b') for x in string)
 
 
 if __name__ == "__main__":
     st = "Hello, World"
-    binary = string_to_binary(st)
+    L = 100 #length of message
+    binary_message = string_to_binary(st)
     train_generator = load_dataset()
-    model = model(channel=3)  # Missing parameters
-    model.compile(
-        loss="categorical_crossentropy",
-        optimizer="adam",
-        metrics=["acc"],
-    )
-    history = model.fit(train_generator, epochs=5, verbose=1)
-    model.summary()
+    input_img = layers.Input(shape=(128, 128, 3))
+    input_messages = layers.Input(shape=(L, 1))
+
+    encoded_images = model_encoder(input_img, input_messages)
+
+    decoded_messages = model_decoder(encoded_images, input_messages)
+
+    autoencoder = Model(input_img, decoded_messages)
+
+    autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
