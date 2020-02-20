@@ -26,7 +26,6 @@ def load_dataset():
 
     num_samples = train_generator.n
     input_shape = train_generator.image_shape
-    # print("Image input %s" % str(input_shape))
     print('Loaded %d training samples.' % (num_samples))
     return train_generator
 
@@ -37,19 +36,18 @@ def string_to_binary(string):
 
 if __name__ == "__main__":
     st = "Hello, World"
-    L = 100 #length of message
     binary_message = string_to_binary(st)
+    message_length = len(binary_message)
     train_generator = load_dataset()
     input_img = layers.Input(shape=(128, 128, 3))
     input_messages = layers.Input(shape=(L, 1))
 
     encoded_images = model_encoder(input_img, input_messages)
 
-    decoded_messages = model_decoder(encoded_images, input_messages)
+    decoded_messages = model_decoder(encoded_images, message_length)
 
     autoencoder = Model(input_img, decoded_messages)
 
     autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
 
-    autoencoder.fit() #dobbiamo vedere come passargli i vari parametri
-
+    autoencoder.fit()  # dobbiamo vedere come passargli i vari parametri
