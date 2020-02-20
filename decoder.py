@@ -3,7 +3,7 @@ from tensorflow.keras.layers import Conv2D, BatchNormalization,\
     GlobalAveragePooling2D, Dense
 
 
-def model_decoder(encoded_imgs, input_message):
+def model_decoder(encoded_imgs):
 
     [N, C, H, W] = encoded_imgs.size()
     message_len = len(input_message)
