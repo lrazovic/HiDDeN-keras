@@ -50,3 +50,6 @@ if __name__ == "__main__":
     autoencoder = Model(input_img, decoded_messages)
 
     autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
+
+    autoencoder.fit() #dobbiamo vedere come passargli i vari parametri
+
