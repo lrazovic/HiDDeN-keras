@@ -1,6 +1,6 @@
 from tensorflow import keras
 from tensorflow.keras.layers import Conv2D, BatchNormalization,\
-    AveragePooling2D
+    GlobalAveragePooling2D, Dense
 
 
 def model_decoder(encoded_imgs, input_message):
@@ -32,8 +32,6 @@ def model_decoder(encoded_imgs, input_message):
     x = Conv2D(message_length, (3, 3), activation='relu',
                padding='same', strides=1)(encoded_imgs)
     x = BatchNormalization(axis=1)(x)
-    output_message = AveragePooling2D(pool_size=(message_len, message_len),
-                                      strides=1,
-                                      padding='same',
-                                      data_format="channels_first")(x)
+    x = GlobalAveragePooling2D(data_format="channels_first")(x)
+    output_message = Dense(message_len*message_len, activation="sigmoid")(x)
     return output_message
