@@ -12,13 +12,6 @@ def model_encoder(input_imgs, input_message, N):
     print("H:", H)
     print("W:", W)
 
-    input_message = np.expand_dims(input_message, axis=0)
-
-    b = tf.constant([H, W], tf.int32)
-    input_message = tf.convert_to_tensor(input_message, dtype=tf.int32)
-    expanded_message = tf.tile(input_message, b)
-    print("extended_message: ", expanded_message)
-
     # Phase 1
     # Default data_format is "channels_last"
 
@@ -47,18 +40,23 @@ def model_encoder(input_imgs, input_message, N):
        At the end of the for x_batch will contain all the images concatened.
     """
 
-    '''
+
     for i in range(N):
-        # msg = input_message[i].repeat(H, W, 1).permute(2, 0, 1)
-        msg = input_message[i]
-        x2 = tf.concat([x[i], msg, input_imgs[i]], 1)
+
+        #expand message
+        input_message = np.expand_dims(input_message, axis=0)
+        b = tf.constant([H, W], tf.int32)
+        input_message = tf.convert_to_tensor(input_message, dtype=tf.float32)
+        expanded_message = tf.tile(input_message, b)
+
+        x2 = tf.concat([x[i], expanded_message, input_imgs[i]], 1)
 
         if i == 0:
             x_batch = x2
 
         else:
             x_batch = tf.concat([x_batch, x2], 0)
-    '''
+
     # Phase 3
     # ConvBNReLU 5
     encoded_images = ZeroPadding2D(padding=(1))(x)
@@ -69,4 +67,7 @@ def model_encoder(input_imgs, input_message, N):
     # Final Convolutonial Layer, no padding
     encoded_images = Conv2D(C, (1, 1), padding='same',
                             strides=1)(encoded_images)
+
+    print(encoded_images)
+
     return encoded_images
