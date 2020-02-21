@@ -1,14 +1,10 @@
-import tensorflow as tf
-from tensorflow import keras
+import numpy as np
 from tensorflow.keras import layers
 from tensorflow.keras.models import Model
 from tensorflow.keras.datasets import mnist
-from tensorflow.keras.callbacks import TensorBoard
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+# from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from encoder import model_encoder
 from decoder import model_decoder
-import numpy as np
-#import matplotlib.pyplot as plt
 
 BATCH_SIZE = 32
 IMG_SIZE = 128  # All images will be resized to 128x128
@@ -45,6 +41,7 @@ if __name__ == "__main__":
     print("The binary message is '{}'".format(binary_message))
     print("The length of the binary message is '{}'".format(message_length))
 
+    # Using Coco2014 as Dataset
     # train_generator = load_dataset()
     # input_img = layers.Input(shape=(IMG_SIZE, IMG_SIZE, 3))
     # N = train_generator.n
