@@ -45,7 +45,7 @@ if __name__ == "__main__":
     # train_generator = load_dataset()
     # input_img = layers.Input(shape=(IMG_SIZE, IMG_SIZE, 3))
     # N = train_generator.n
-    binary_message = np.array(binary_message)
+    binary_message = np.fromstring(binary_message, dtype=int, sep=' ')
 
     # Using MNIST as Dataset
     (X_train, _), (X_test, _) = mnist.load_data()
