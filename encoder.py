@@ -1,6 +1,7 @@
 from tensorflow import keras
 from tensorflow.keras.layers import Conv2D, BatchNormalization, ZeroPadding2D
 import tensorflow as tf
+import numpy as np
 
 
 def model_encoder(input_imgs, input_message, N):
@@ -11,10 +12,12 @@ def model_encoder(input_imgs, input_message, N):
     print("H:", H)
     print("W:", W)
 
+    input_message = np.expand_dims(input_message, axis=0)
+
     b = tf.constant([H, W], tf.int32)
     input_message = tf.convert_to_tensor(input_message, dtype=tf.int32)
-    extended_message = tf.tile(input_message, b)
-    print("extended_message: ", extended_message)
+    expanded_message = tf.tile(input_message, b)
+    print("extended_message: ", expanded_message)
 
     # Phase 1
     # Default data_format is "channels_last"
