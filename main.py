@@ -8,7 +8,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from encoder import model_encoder
 from decoder import model_decoder
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 BATCH_SIZE = 32
 IMG_SIZE = 128  # All images will be resized to 128x128
@@ -48,6 +48,7 @@ if __name__ == "__main__":
     # train_generator = load_dataset()
     # input_img = layers.Input(shape=(IMG_SIZE, IMG_SIZE, 3))
     # N = train_generator.n
+    binary_message = np.array(binary_message)
 
     # Using MNIST as Dataset
     (X_train, _), (X_test, _) = mnist.load_data()

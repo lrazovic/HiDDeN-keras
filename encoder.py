@@ -10,6 +10,12 @@ def model_encoder(input_imgs, input_message, N):
     print("C:", C)
     print("H:", H)
     print("W:", W)
+
+    b = tf.constant([H, W], tf.int32)
+    input_message = tf.convert_to_tensor(input_message, dtype=tf.int32)
+    extended_message = tf.tile(input_message, b)
+    print("extended_message: ", extended_message)
+
     # Phase 1
     x = Conv2D(64, (3, 3), activation='relu',
                padding='same', strides=1)(input_imgs)
