@@ -30,6 +30,7 @@ def load_dataset():
 
 
 def string_to_binary(string):
+    # UTF-8 Encoding
     return ' '.join(format(ord(x), 'b') for x in string)
 
 
@@ -59,8 +60,7 @@ if __name__ == "__main__":
     X_train = X_train.reshape(-1, shape_x, shape_y, 1)
     X_test = X_test.reshape(-1, shape_x, shape_y, 1)
 
-    encoded_images = model_encoder(
-        input_img, binary_message, N)
+    encoded_images = model_encoder(input_img, binary_message, N)
     decoded_messages = model_decoder(encoded_images, message_length)
 
     autoencoder = Model(input_img, decoded_messages)
