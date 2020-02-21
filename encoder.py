@@ -40,16 +40,19 @@ def model_encoder(input_imgs, input_message, N):
        At the end of the for x_batch will contain all the images concatened.
     """
 
-
     for i in range(N):
 
         #expand message
-        input_message = np.expand_dims(input_message, axis=0)
-        b = tf.constant([H, W], tf.int32)
-        input_message = tf.convert_to_tensor(input_message, dtype=tf.float32)
-        expanded_message = tf.tile(input_message, b)
+        expanded_message = np.expand_dims(input_message, axis=0)
+        expanded_message = np.expand_dims(expanded_message, axis=0)
+        b = tf.constant([H, W,1], tf.int32)
+        expanded_message = tf.convert_to_tensor(expanded_message, dtype=tf.float32)
+        expanded_message = tf.tile(expanded_message, b)
 
-        x2 = tf.concat([x[i], expanded_message, input_imgs[i]], 1)
+
+
+        x2 = tf.concat([expanded_message, x[i], input_imgs[i]], -1)
+
 
         if i == 0:
             x_batch = x2
@@ -67,7 +70,5 @@ def model_encoder(input_imgs, input_message, N):
     # Final Convolutonial Layer, no padding
     encoded_images = Conv2D(C, (1, 1), padding='same',
                             strides=1)(encoded_images)
-
-    print(encoded_images)
 
     return encoded_images
