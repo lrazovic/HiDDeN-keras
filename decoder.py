@@ -1,43 +1,30 @@
-from tensorflow import keras
-from tensorflow.keras.layers import Conv2D, BatchNormalization,\
-    GlobalAveragePooling2D, Dense
+from tensorflow.keras.layers import Activation, Dense, Input, \
+    BatchNormalization
+from tensorflow.keras.layers import Conv2D, Flatten
+from tensorflow.keras.layers import Reshape, Conv2DTranspose
+from tensorflow.keras.models import Model
+from tensorflow.keras import backend as K
+from const import *
 
 
-def model_decoder(encoded_imgs, message_length):
-    # ConvBNReLU 1
-    x = Conv2D(64, (3, 3), activation='relu',
-               padding='same', strides=1)(encoded_imgs)
-    x = BatchNormalization(axis=1)(x)
-    # ConvBNReLU 2
-    x = Conv2D(64, (3, 3), activation='relu',
-               padding='same', strides=1)(x)
-    x = BatchNormalization(axis=1)(x)
-    # ConvBNReLU 3
-    x = Conv2D(64, (3, 3), activation='relu',
-               padding='same', strides=1)(x)
-    x = BatchNormalization(axis=1)(x)
-    # ConvBNReLU 4
-    x = Conv2D(64, (3, 3), activation='relu',
-               padding='same', strides=1)(x)
-    x = BatchNormalization(axis=1)(x)
-    # ConvBNReLU 5
-    x = Conv2D(64, (3, 3), activation='relu',
-               padding='same', strides=1)(x)
-    x = BatchNormalization(axis=1)(x)
-    # ConvBNReLU 6
-    x = Conv2D(64, (3, 3), activation='relu',
-               padding='same', strides=1)(x)
-    x = BatchNormalization(axis=1)(x)
-    # ConvBNReLU 7
-    x = Conv2D(64, (3, 3), activation='relu',
-               padding='same', strides=1)(x)
-    x = BatchNormalization(axis=1)(x)
-    # ConvBNReLU, with L filters.
-    x = Conv2D(message_length, (3, 3), activation='relu',
-               padding='same', strides=1)(x)
-    x = BatchNormalization(axis=1)(x)
+def model_decoder(latent_inputs, decoder_filters, shape):
+    x = Dense(shape[1] * shape[2] * shape[3])(latent_inputs)
+    x = Reshape((shape[1], shape[2], shape[3]))(x)
 
-    x = GlobalAveragePooling2D()(x)
-    output_message = Dense(message_length,
-                           activation="sigmoid")(x)
-    return output_message
+    for filters in decoder_filters:
+        x = Conv2D(filters=filters,
+                   kernel_size=KERNEL_SIZE,
+                   strides=1,
+                   padding='same')(x)
+        x = BatchNormalization(axis=1)(x)
+        x = Activation("relu")(x)
+
+    x = Conv2D(filters=1,
+               kernel_size=KERNEL_SIZE,
+               padding='same')(x)
+    # x = Conv2D(message_length, (3, 3), activation='relu',
+    #                padding='same', strides=1)(x)
+    x = BatchNormalization(axis=1)(x)
+    outputs = Activation('sigmoid', name='decoder_output')(x)
+    decoder = Model(latent_inputs, outputs, name='decoder')
+    return decoder
