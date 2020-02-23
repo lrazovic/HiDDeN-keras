@@ -1,7 +1,5 @@
-from tensorflow.keras.layers import Activation, Dense, Input, \
-    BatchNormalization
-from tensorflow.keras.layers import Conv2D, Flatten
-from tensorflow.keras.layers import Reshape, Conv2DTranspose
+from tensorflow.keras.layers import Activation, Dense, BatchNormalization,\
+    Conv2D, Flatten
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 from const import *
@@ -17,10 +15,11 @@ def model_encoder(inputs, encoder_filters):
         x = BatchNormalization(axis=1)(x)
         x = Activation("relu")(x)
     x = Conv2D(1, 1, padding='same', strides=1)(x)
+
     # Shape info needed to build Decoder Model
     shape = K.int_shape(x)
 
-    # Generate the latent vector
+    # Generate the latent vector (WHY ?)
     x = Flatten()(x)
     latent = Dense(LATENT_DIM, name='latent_vector')(x)
 
