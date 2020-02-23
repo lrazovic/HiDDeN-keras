@@ -4,9 +4,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import Model
 from PIL import Image
+
 from encoder import model_encoder
 from decoder import model_decoder
 from const import *
+from loss import euclidean_distance_loss
+from utils import string_to_binary
+
+st = "Hello, World!"
+binary_message = string_to_binary(st)
+message_length = len(binary_message)
+print("The original message is '{}'".format(st))
+print("The binary message is '{}'".format(binary_message))
+print("The length of the binary message is '{}'".format(message_length))
+binary_message = np.fromstring(binary_message, dtype=float, sep=' ')
+
 
 # MNIST dataset
 (x_train, _), (x_test, _) = mnist.load_data()
@@ -40,27 +52,27 @@ inputs = Input(shape=input_shape, name='encoder_input')
 
 # Instantiate Encoder Model
 (encoder, shape) = model_encoder(inputs, encoder_filters)
-encoder.summary()
+# encoder.summary()
 
 # Build the Decoder Model
 latent_inputs = Input(shape=(LATENT_DIM,), name='decoder_input')
 
 # Instantiate Decoder Model
-decoder = model_decoder(latent_inputs, decoder_filters, shape)
-decoder.summary()
+decoder = model_decoder(latent_inputs, decoder_filters, shape, message_length)
+# decoder.summary()
 
 # Autoencoder = Encoder + Decoder
 # Instantiate Autoencoder Model
 autoencoder = Model(inputs, decoder(encoder(inputs)), name='autoencoder')
-autoencoder.summary()
+# autoencoder.summary()
 
-autoencoder.compile(loss='mse', optimizer='adam')
+autoencoder.compile(loss=euclidean_distance_loss, optimizer='adam')
 
 # Train the autoencoder
 autoencoder.fit(x_train_noisy,
                 x_train,
                 validation_data=(x_test_noisy, x_test),
-                epochs=30,
+                epochs=10,
                 batch_size=BATCH_SIZE)
 
 # Predict the Autoencoder output from corrupted test images
