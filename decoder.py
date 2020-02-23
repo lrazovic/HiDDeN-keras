@@ -1,13 +1,10 @@
-from tensorflow.keras.layers import Activation, Dense, Input, \
-    BatchNormalization
-from tensorflow.keras.layers import Conv2D, Flatten
-from tensorflow.keras.layers import Reshape, Conv2DTranspose
+from tensorflow.keras.layers import Activation, BatchNormalization, Conv2D,\
+    Dense, Reshape, GlobalAveragePooling2D
 from tensorflow.keras.models import Model
-from tensorflow.keras import backend as K
 from const import *
 
 
-def model_decoder(latent_inputs, decoder_filters, shape):
+def model_decoder(latent_inputs, decoder_filters, shape, L):
     x = Dense(shape[1] * shape[2] * shape[3])(latent_inputs)
     x = Reshape((shape[1], shape[2], shape[3]))(x)
 
@@ -19,12 +16,14 @@ def model_decoder(latent_inputs, decoder_filters, shape):
         x = BatchNormalization(axis=1)(x)
         x = Activation("relu")(x)
 
-    x = Conv2D(filters=1,
+    # Last ConvBNReLU with L filters
+    x = Conv2D(filters=L,
                kernel_size=KERNEL_SIZE,
                padding='same')(x)
-    # x = Conv2D(message_length, (3, 3), activation='relu',
-    #                padding='same', strides=1)(x)
     x = BatchNormalization(axis=1)(x)
+    x = Activation("relu")(x)
+
+    #x = GlobalAveragePooling2D()(x)
     outputs = Activation('sigmoid', name='decoder_output')(x)
     decoder = Model(latent_inputs, outputs, name='decoder')
     return decoder
