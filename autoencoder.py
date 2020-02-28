@@ -23,7 +23,6 @@ import matplotlib.pyplot as plt
 import string
 import random
 
-
 print(tf.__version__)
 
 """## Const"""
@@ -48,23 +47,15 @@ def generate_random_messages(N):
 def euclidean_distance_loss(y_true, y_pred):
     return sqrt(sum(square(y_pred - y_true), axis=-1))
 
-
-def encoder_loss(y_true, y_pred):
-    return euclidean_distance_loss(y_true, y_pred)
-
-def decoder_loss(y_true, y_pred):
-    return euclidean_distance_loss(y_true, y_pred)
-
 def string_to_binary(string):
     # UTF-8 Encoding
     return ''.join(format(ord(x), 'b') for x in string)
 
+"""## Encoder"""
 
-#Encoder
-
-def build_encoder(input_images, input_messages, encoder_filters, N):
-    x = input_images
-    _, H, W, C = input_images.shape
+def model_encoder(inputs, encoder_filters, input_messages, N):
+    x = inputs
+    _, H, W, C = inputs.shape
 
     # 4 ConvBnReLU
     for filters in encoder_filters:
@@ -84,13 +75,13 @@ def build_encoder(input_images, input_messages, encoder_filters, N):
 
     for i in range(N):
         if i % 300 == 0:
-            print(i)
+          print(i)
         expanded_message = tf.expand_dims(input_messages[i], axis=0)
         b = tf.constant([H, W, 1], tf.int32)
         expanded_message = tf.convert_to_tensor(
             expanded_message, dtype=tf.float32)
         expanded_message = tf.tile(expanded_message, b)
-        x2 = tf.concat([expanded_message, x[i], input_images[i]], -1)
+        x2 = tf.concat([expanded_message, x[i], inputs[i]], -1)
         if i == 0:
             x_batch = x2
         else:
@@ -109,11 +100,12 @@ def build_encoder(input_images, input_messages, encoder_filters, N):
     encoded_images = Conv2D(C, 1, padding='same',
                             strides=1)(encoded_images)
 
-    return encoded_images
+    encoder = Model([inputs, input_messages], encoded_images, name='encoder')
+    return encoder
 
-#decoder
+"""## Decoder"""
 
-def build_decoder(encoded_images, decoder_filters, L):
+def model_decoder(encoded_images, decoder_filters, L):
     # 7 ConvBnReLU
     x = encoded_images
     for filters in decoder_filters:
@@ -136,15 +128,6 @@ def build_decoder(encoded_images, decoder_filters, L):
 
     return outputs
 
-#autoencoder
-
-def build_autoencoder(input_images, input_messages, encoder_filters, decoder_filters, N, L):
-    encoded_images = build_encoder(input_images, input_messages, encoder_filters, N)
-
-    decoded_messages = build_decoder(encoded_images, decoder_filters, L)
-
-    return encoded_images, decoded_messages
-
 """## Autoencoder"""
 
 # MNIST dataset
@@ -165,25 +148,25 @@ input_shape = (image_size, image_size, 1)  # H*W*C
 encoder_filters = [64, 64, 64, 64]
 decoder_filters = [64, 64, 64, 64, 64, 64, 64]
 messages = generate_random_messages(N)
+
+# First build the Encoder Model
 L = messages.shape[1]
 print(f'L is {L}')
-
-#Prepare inputs
 message_shape = (1, L)
-input_images = Input(shape=input_shape, name='encoder_input')
+inputs = Input(shape=input_shape, name='encoder_input')
 input_messages = Input(shape=message_shape)
-
-#build the model
-encoder, decoder = build_autoencoder(input_images, input_messages, encoder_filters, decoder_filters, N, L )
-
-
-autoencoder = Model([input_images, input_messages], [encoder, decoder], name='autoencoder')
-autoencoder.summary()
-autoencoder.compile(loss=['mse', 'mse'], loss_weights = [1.0, 0.5], optimizer='adam')
+# Instantiate Encoder Model
+encoder = model_encoder(inputs, encoder_filters, input_messages, N)
+# Build the Decoder Model
+encoded_images = Input(input_shape, name='decoder_input')
+# Instantiate Decoder Model
+decoder = model_decoder(encoded_images, decoder_filters, L)
+autoencoder = Model(encoded_images, [encoded_images, decoder])
+autoencoder.compile(loss=[euclidean_distance_loss,euclidean_distance_loss], loss_weights = [0.5, 1.0], optimizer='adam')
 
 # Train the autoencoder
 autoencoder.fit([x_train, messages],
-        [x_train, messages],
+        [x_train,messages],
         epochs=100,
         batch_size=BATCH_SIZE)
 
