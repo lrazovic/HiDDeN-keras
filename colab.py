@@ -72,27 +72,22 @@ def model_encoder(inputs, encoder_filters, input_messages, N):
        from the previous layer.
        At the end of the for x_batch will contain all the images concatened.
     """
-
-    for i in range(N):
-        if i % 300 == 0:
-          print(i)
-        expanded_message = tf.expand_dims(input_messages[i], axis=0)
-        b = tf.constant([H, W, 1], tf.int32)
-        expanded_message = tf.convert_to_tensor(
-            expanded_message, dtype=tf.float32)
-        expanded_message = tf.tile(expanded_message, b)
-        x2 = tf.concat([expanded_message, x[i], inputs[i]], -1)
-        if i == 0:
-            x_batch = x2
-        else:
-            x_batch = tf.concat([x_batch, x2], 0)
-
+    expanded_message = tf.expand_dims(input_messages, axis=1)
+    expanded_message = tf.expand_dims(expanded_message, axis=1)
+    b = tf.constant([1, H, W, 1], tf.int32)
+    expanded_message = tf.convert_to_tensor(
+        expanded_message, dtype=tf.float32)
+    expanded_message = tf.tile(expanded_message, b)
+    x2 = tf.concat([expanded_message, x, inputs], axis=-1)
+    # Phase 3
+    # ConvBNReLU 5
+    print("Concat DONE")
     # Phase 3
     # ConvBNReLU 5
     encoded_images = Conv2D(64,
                             kernel_size=KERNEL_SIZE,
                             strides=1,
-                            padding='same')(x)
+                            padding='same')(x2)
     encoded_images = BatchNormalization(axis=1)(encoded_images)
     encoded_images = Activation("relu")(encoded_images)
 
@@ -100,8 +95,8 @@ def model_encoder(inputs, encoder_filters, input_messages, N):
     encoded_images = Conv2D(C, 1, padding='same',
                             strides=1)(encoded_images)
 
-    encoder = Model([inputs, input_messages], encoded_images, name='encoder')
-    return encoder
+    # encoder = Model([inputs, input_messages], encoded_images, name='encoder')
+    return encoded_images
 
 """## Decoder"""
 
@@ -109,7 +104,7 @@ def model_decoder(encoded_images, decoder_filters, L):
     # 7 ConvBnReLU
     x = encoded_images
     for filters in decoder_filters:
-        x = Conv2D(filters=filters,
+        x = Conv2D(filters,
                    kernel_size=KERNEL_SIZE,
                    strides=1,
                    padding='same')(x)
@@ -117,16 +112,17 @@ def model_decoder(encoded_images, decoder_filters, L):
         x = Activation("relu")(x)
 
     # Last ConvBNReLU with L filters
-    x = Conv2D(filters=L,
+    x = Conv2D(L,
                kernel_size=KERNEL_SIZE,
                padding='same')(x)
     x = BatchNormalization(axis=1)(x)
     x = Activation("relu")(x)
 
     x = GlobalAveragePooling2D()(x)
+
     outputs = Activation('sigmoid', name='decoder_output')(x)
-    decoder = Model(encoded_images, outputs, name='decoder')
-    return decoder
+    # decoder = Model(encoded_images, outputs, name='decoder')
+    return outputs
 
 """## Autoencoder"""
 
@@ -152,26 +148,42 @@ messages = generate_random_messages(N)
 # First build the Encoder Model
 L = messages.shape[1]
 print(f'L is {L}')
-message_shape = (1, L)
+message_shape = (L)
 inputs = Input(shape=input_shape, name='encoder_input')
 input_messages = Input(shape=message_shape)
 # Instantiate Encoder Model
-encoder = model_encoder(inputs, encoder_filters, input_messages, N)
+encoded_images = model_encoder(inputs, encoder_filters, input_messages, N)
 # Build the Decoder Model
-encoded_images = Input(input_shape, name='decoder_input')
 # Instantiate Decoder Model
-decoder = model_decoder(encoded_images, decoder_filters, L)
+encoder = Model([inputs, input_messages], encoded_images)
+encoder.compile(optimizer='adam', loss='mse')
+encoder.summary()
+encoder.fit([x_train, messages],
+            x_train,
+            epochs=20,
+            batch_size=BATCH_SIZE)
 
-decoder.compile(loss=euclidean_distance_loss, optimizer='adam')
+'''
+decoder = model_decoder(encoded_images, decoder_filters, L)
+autoencoder = Model([inputs, input_messages], [encoded_images, decoder])
+autoencoder.compile(optimizer='adam', loss='binary_crossentropy')
+autoencoder.summary()
 
 # Train the autoencoder
-decoder.fit([x_train, messages],
-        messages,
-        epochs=100,
-        batch_size=BATCH_SIZE)
+autoencoder.fit([x_train, messages],
+            [x_train, messages],
+            epochs=20,
+            batch_size=BATCH_SIZE)
+'''
 
 """## Predictions"""
 
-x_decoded = decoder.predict([x_train, messages])
+plt.imshow(np.squeeze(x_train[7]))
+plt.show()
 
-print(x_decoded[0])
+prediction = encoder.predict([x_train, messages])
+
+plt.imshow(np.squeeze(prediction[7]))
+plt.show()
+
+print(x_decoded[3])
