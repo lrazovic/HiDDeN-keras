@@ -100,8 +100,8 @@ def model_encoder(inputs, encoder_filters, input_messages, N):
     encoded_images = Conv2D(C, 1, padding='same',
                             strides=1)(encoded_images)
 
-    encoder = Model([inputs, input_messages], encoded_images, name='encoder')
-    return encoder
+    #encoder = Model([inputs, input_messages], encoded_images, name='encoder')
+    return encoded_images
 
 """## Decoder"""
 
@@ -156,12 +156,12 @@ message_shape = (1, L)
 inputs = Input(shape=input_shape, name='encoder_input')
 input_messages = Input(shape=message_shape)
 # Instantiate Encoder Model
-encoder = model_encoder(inputs, encoder_filters, input_messages, N)
+encoded_images = model_encoder(inputs, encoder_filters, input_messages, N)
 # Build the Decoder Model
-encoded_images = Input(input_shape, name='decoder_input')
+#encoded_images = Input(input_shape, name='decoder_input')
 # Instantiate Decoder Model
 decoder = model_decoder(encoded_images, decoder_filters, L)
-autoencoder = Model(encoded_images, [encoded_images, decoder])
+autoencoder = Model([inputs, input_messages], [encoded_images, decoder])
 autoencoder.compile(loss=[euclidean_distance_loss,euclidean_distance_loss], loss_weights = [0.5, 1.0], optimizer='adam')
 
 # Train the autoencoder
