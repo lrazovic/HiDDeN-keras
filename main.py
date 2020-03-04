@@ -1,71 +1,51 @@
 import numpy as np
-from tensorflow.keras import layers
+from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
 from tensorflow.keras.datasets import mnist
-# from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from encoder import model_encoder
 from decoder import model_decoder
-
-BATCH_SIZE = 32
-IMG_SIZE = 128  # All images will be resized to 128x128
-
-
-def load_dataset():
-    datadir = 'dataset'
-    input_shape = ()
-    train_datagen = ImageDataGenerator(rescale=1./255)
-
-    train_generator = train_datagen.flow_from_directory(
-        directory=datadir,
-        target_size=(IMG_SIZE, IMG_SIZE),
-        color_mode="rgb",
-        batch_size=BATCH_SIZE,
-        shuffle=True,
-        class_mode=None,
-    )
-
-    num_samples = train_generator.n
-    print('Loaded %d training samples.' % (num_samples))
-    return train_generator
+from utils import generate_random_messages
+from loss import image_distortion_loss, message_distortion_loss
+import matplotlib.pyplot as plt
+from const import *
 
 
-def string_to_binary(string):
-    # UTF-8 Encoding
-    return ' '.join(format(ord(x), 'b') for x in string)
+# MNIST dataset
+(x_train, _), (x_test, _) = mnist.load_data()
+x_train = x_train[:SIZE]
+x_test = x_test[:SIZE]
+image_size = x_train.shape[1]
+x_train = x_train.astype('float32') / 255.
+x_test = x_test.astype('float32') / 255.
+x_train = np.reshape(x_train, [-1, image_size, image_size, 1])
+x_test = np.reshape(x_test, [-1, image_size, image_size, 1])
+N = len(x_train)
 
+# Network parameters
+input_shape = (image_size, image_size, 1)  # H*W*C
 
-if __name__ == "__main__":
-    st = "Hello, World"
-    binary_message = string_to_binary(st)
-    message_length = len(binary_message)
-    print("The original message is '{}'".format(st))
-    print("The binary message is '{}'".format(binary_message))
-    print("The length of the binary message is '{}'".format(message_length))
+# Encoder/Decoder number of CNN layers and filters per layer
+encoder_filters = [64, 64, 64, 64]
+decoder_filters = [64, 64, 64, 64, 64, 64, 64]
+(plain_messages, messages) = generate_random_messages(N)
+# First build the Encoder Model
+L = messages.shape[1]
+print(f'L is {L}')
+message_shape = (L,)
+inputs = Input(shape=input_shape, name='encoder_input')
+input_messages = Input(shape=message_shape)
+# Instantiate Encoder Model
+encoded_images = model_encoder(inputs, encoder_filters, input_messages)
+# Build the Decoder Model
+# Instantiate Decoder Model
+decoder = model_decoder(encoded_images, decoder_filters, L)
+autoencoder = Model([inputs, input_messages], [encoded_images, decoder])
+autoencoder.compile(loss=[image_distortion_loss,
+                          message_distortion_loss], optimizer='adam')
 
-    # Using Coco2014 as Dataset
-    # train_generator = load_dataset()
-    # input_img = layers.Input(shape=(IMG_SIZE, IMG_SIZE, 3))
-    # N = train_generator.n
-    binary_message = np.fromstring(binary_message, dtype=float, sep=' ')
-
-    # Using MNIST as Dataset
-    (X_train, _), (X_test, _) = mnist.load_data()
-    shape_x = 28
-    shape_y = 28
-    input_img = layers.Input(shape=(shape_x, shape_y, 1))
-    N = len(X_train)
-
-    X_train = X_train.astype('float32') / 255.
-    X_test = X_test.astype('float32') / 255.
-    X_train = X_train.reshape(-1, shape_x, shape_y, 1)
-    X_test = X_test.reshape(-1, shape_x, shape_y, 1)
-
-    encoded_images = model_encoder(input_img, binary_message, N)
-    decoded_messages = model_decoder(encoded_images, message_length)
-
-    autoencoder = Model(input_img, decoded_messages)
-    autoencoder.compile(optimizer='adam', loss='mean_squared_error')
-    autoencoder.summary()
-    autoencoder.fit(X_train, X_train,
-                    epochs=1,
-                    shuffle=True,)
+# Train the autoencoder
+autoencoder.fit([x_train, messages],
+                [x_train, messages],
+                epochs=20,
+                validation_split=.2,
+                batch_size=BATCH_SIZE)
