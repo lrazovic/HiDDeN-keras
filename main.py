@@ -1,51 +1,37 @@
-import numpy as np
-from tensorflow.keras.layers import Input
-from tensorflow.keras.models import Model
-from tensorflow.keras.datasets import mnist
-from encoder import model_encoder
-from decoder import model_decoder
-from utils import generate_random_messages
-from loss import image_distortion_loss, message_distortion_loss
-import matplotlib.pyplot as plt
 from const import *
+from utils import *
+from aae import HIDDEN
+import matplotlib.pyplot as plt
+from data_loader import load_data
 
-
-# MNIST dataset
-(x_train, _), (x_test, _) = mnist.load_data()
-x_train = x_train[:SIZE]
-x_test = x_test[:SIZE]
-image_size = x_train.shape[1]
-x_train = x_train.astype('float32') / 255.
-x_test = x_test.astype('float32') / 255.
-x_train = np.reshape(x_train, [-1, image_size, image_size, 1])
-x_test = np.reshape(x_test, [-1, image_size, image_size, 1])
-N = len(x_train)
-
-# Network parameters
-input_shape = (image_size, image_size, 1)  # H*W*C
-
-# Encoder/Decoder number of CNN layers and filters per layer
-encoder_filters = [64, 64, 64, 64]
-decoder_filters = [64, 64, 64, 64, 64, 64, 64]
-(plain_messages, messages) = generate_random_messages(N)
-# First build the Encoder Model
-L = messages.shape[1]
-print(f'L is {L}')
-message_shape = (L,)
-inputs = Input(shape=input_shape, name='encoder_input')
-input_messages = Input(shape=message_shape)
-# Instantiate Encoder Model
-encoded_images = model_encoder(inputs, encoder_filters, input_messages)
-# Build the Decoder Model
-# Instantiate Decoder Model
-decoder = model_decoder(encoded_images, decoder_filters, L)
-autoencoder = Model([inputs, input_messages], [encoded_images, decoder])
-autoencoder.compile(loss=[image_distortion_loss,
-                          message_distortion_loss], optimizer='adam')
-
-# Train the autoencoder
-autoencoder.fit([x_train, messages],
-                [x_train, messages],
-                epochs=20,
-                validation_split=.2,
-                batch_size=BATCH_SIZE)
+if __name__ == "__main__":
+    # Take some infos from the dataset
+    (train_generator, test_generator, input_shape) = load_data()
+    (N, H, W, C) = (train_generator.n,
+                    input_shape[0], input_shape[1], input_shape[2])
+    # Generate random messages as input of the encoder
+    (_, messages) = generate_random_messages(N)
+    L = messages.shape[1]
+    epochs = 100
+    print(f'{N} images, {H} x {W} x {C}')
+    print(f"Message length: {L}")
+    # Create the network
+    network = HIDDEN(H, W, C, L, "adam")
+    # Train the network
+    network.train(epochs, train_generator, messages)
+    (plain_test_messages, test_messages) = generate_random_messages(SIZE_TEST)
+    network.predict(test_generator, test_messages, plain_test_messages, 1)
+    errors = []
+    i = 0
+    for msg in network.decoded_msg:
+        rpm = round_predicted_message(msg)
+        tpm = round_predicted_message(test_messages[i])
+        err = count_errors(tpm, rpm)
+        errors.append(err)
+        i += 1
+    print(f'{sum(errors)/1000}/{network.message_length}')
+    plt.axis('off')
+    plt.imshow(np.squeeze(network.decoded_img[3]))
+    plt.show()
+    plt.imshow(np.squeeze(test_generator[0][0][3]))
+    plt.show()
